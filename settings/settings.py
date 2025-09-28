@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "user",
     "user_auth",
     "questions",
+    "students",
 ]
 
 REST_FRAMEWORK = {
@@ -42,7 +43,6 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
 }
-
 
 
 MIDDLEWARE = [
