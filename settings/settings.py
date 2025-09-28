@@ -19,6 +19,8 @@ DEBUG = True
 ALLOWED_HOSTS = ["*"]
 CORS_ALLOW_ALL_ORIGINS = True
 
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Application definition
 
@@ -32,11 +34,20 @@ INSTALLED_APPS = [
     # apps
     "user",
     "user_auth",
+    "questions",
 ]
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+}
+
+
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
-    "user_auth.middleware.remove_api_prefix_middleware", 
+    "user_auth.middleware.remove_api_prefix_middleware",
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
