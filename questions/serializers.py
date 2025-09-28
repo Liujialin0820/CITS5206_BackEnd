@@ -1,3 +1,4 @@
+import json
 from rest_framework import serializers
 from .models import Question, Choice, QuestionImage
 
@@ -14,10 +15,13 @@ class QuestionImageSerializer(serializers.ModelSerializer):
         fields = ["id", "image"]
 
 
-# Serializer for reading (nested choices + images)
-class QuestionReadSerializer(serializers.ModelSerializer):
+class QuestionSerializer(serializers.ModelSerializer):
+    # 用于返回时嵌套
     choices = ChoiceSerializer(many=True, read_only=True)
-    images = QuestionImageSerializer(many=True, read_only=True)
+    image = QuestionImageSerializer(read_only=True)
+
+    # 用于写入时接收 JSON 字符串
+    choices_json = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = Question
@@ -29,47 +33,58 @@ class QuestionReadSerializer(serializers.ModelSerializer):
             "category",
             "marks",
             "question_text",
-            "choices",
-            "images",
-        ]
-
-
-# Serializer for writing (choices as JSON + images in request.FILES)
-class QuestionWriteSerializer(serializers.ModelSerializer):
-    choices = serializers.JSONField(write_only=True, required=True)
-
-    class Meta:
-        model = Question
-        fields = [
-            "name",
-            "type",
-            "level",
-            "category",
-            "marks",
-            "question_text",
-            "choices",
-            "images",  # dummy field to avoid "unknown field"
+            "choices",      # 返回时显示
+            "choices_json", # 写入时用
+            "image",
         ]
 
     def create(self, validated_data):
-        choices_data = validated_data.pop("choices")
-        validated_data.pop("images", None)  # remove dummy field
+        # 处理 choices_json
+        choices_raw = validated_data.pop("choices_json")
+        try:
+            choices_data = json.loads(choices_raw)
+        except Exception:
+            raise serializers.ValidationError({"choices": "Invalid JSON format"})
 
-        # create question
+        request = self.context.get("request")
         question = Question.objects.create(**validated_data)
 
-        # create choices
+        # 保存 choices
         for choice in choices_data:
-            Choice.objects.create(
-                question=question,
-                text=choice["text"],
-                is_correct=choice["is_correct"],
-            )
+            Choice.objects.create(question=question, **choice)
 
-        # handle images
-        request = self.context.get("request")
-        if request and request.FILES:
-            for f in request.FILES.getlist("images"):
-                QuestionImage.objects.create(question=question, image=f)
+        # 保存单图
+        if request and "image" in request.FILES:
+            QuestionImage.objects.create(question=question, image=request.FILES["image"])
 
         return question
+
+    def update(self, instance, validated_data):
+        choices_raw = validated_data.pop("choices_json", None)
+        request = self.context.get("request")
+
+        # 更新基础字段
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        # 更新 choices
+        if choices_raw:
+            try:
+                choices_data = json.loads(choices_raw)
+            except Exception:
+                raise serializers.ValidationError({"choices": "Invalid JSON format"})
+
+            instance.choices.all().delete()
+            for choice in choices_data:
+                Choice.objects.create(question=instance, **choice)
+
+        # 更新 image
+        if request and "image" in request.FILES:
+            if hasattr(instance, "image"):
+                instance.image.delete()
+            QuestionImage.objects.update_or_create(
+                question=instance, defaults={"image": request.FILES["image"]}
+            )
+
+        return instance

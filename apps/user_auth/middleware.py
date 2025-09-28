@@ -26,7 +26,7 @@ class login_check_middleware(MiddlewareMixin):
         self.white_list = [
             reverse("user:login"),
         ]
-        self.white_list_start = []
+        self.white_list_start = ['/media/']
 
     def process_request(self, request):
 
