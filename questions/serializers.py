@@ -88,3 +88,16 @@ class QuestionSerializer(serializers.ModelSerializer):
             )
 
         return instance
+
+
+class ChoicePreviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Choice
+        fields = ["id", "text"]   # ❌ 不要返回 is_correct
+
+class QuestionPreviewSerializer(serializers.ModelSerializer):
+    choices = ChoicePreviewSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Question
+        fields = ["id", "question_text", "type", "marks", "choices"]

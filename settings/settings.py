@@ -36,14 +36,18 @@ INSTALLED_APPS = [
     "user_auth",
     "questions",
     "students",
+    "django_filters",
+    "testpaper",
 ]
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 100,  # 每页多少条（你可以改成前端 page_size 的值）
 }
-
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",

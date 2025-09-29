@@ -5,16 +5,21 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Question, Choice
 from .serializers import QuestionSerializer
+from rest_framework import viewsets, filters
+from django_filters.rest_framework import DjangoFilterBackend
+
+
 
 
 class QuestionViewSet(viewsets.ModelViewSet):
     queryset = Question.objects.all()
     serializer_class = QuestionSerializer
 
+    # ✅ 支持 search / filter
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ["name", "question_text"]
+    filterset_fields = ["category", "level"]
 
-class QuestionViewSet(viewsets.ModelViewSet):
-    queryset = Question.objects.all()
-    serializer_class = QuestionSerializer
 
     @action(detail=False, methods=["post"])
     def import_csv(self, request):
