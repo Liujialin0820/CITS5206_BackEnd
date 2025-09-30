@@ -3,19 +3,11 @@ from django.db import models
 from django.utils import timezone
 from django.db.models import F
 import uuid
-
+from students.models import Student
 from testpaper.models import TestPaper
 from questions.models import Question, Choice
 
-class Student(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=120)
-    student_no = models.CharField(max_length=64, unique=True, db_index=True)
-    email = models.EmailField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return f'{self.student_no} - {self.name}'
 
 class Attempt(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

@@ -1,15 +1,14 @@
 # students/models.py
 from django.db import models
+import uuid
 
 
 class Student(models.Model):
-    student_id = models.CharField(max_length=20, unique=True)  # 学号
-    name = models.CharField(max_length=100)  # 姓名
-    email = models.EmailField(unique=True)  # 邮箱
-    registration_date = models.DateTimeField()  # 注册日期
-
-    class Meta:
-        ordering = ["-registration_date"]
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=120)
+    student_no = models.CharField(max_length=64, unique=True, db_index=True)
+    email = models.EmailField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True,blank=True, null=True)
 
     def __str__(self):
-        return f"{self.student_id} - {self.name}"
+        return f'{self.student_no} - {self.name}'
