@@ -25,6 +25,8 @@ class TestPaper(models.Model):
     questions = models.ManyToManyField(Question, related_name="test_papers")
     created_at = models.DateTimeField(auto_now_add=True)
     level_config = models.JSONField(default=dict, blank=True)
+    duration_seconds = models.PositiveIntegerField(default=3600)  
+    pass_percentage = models.PositiveIntegerField(default=60)     
 
     class Meta:
         ordering = ["-created_at"]

@@ -8,6 +8,98 @@ from django.db.models.functions import Coalesce
 from .serializers import StartExamSerializer, SubmitExamSerializer
 from .models import Attempt, AttemptAnswer, ChoiceStat
 from questions.models import Choice
+from testpaper.models import TestPaper
+from students.models import Student
+
+
+class GlobalStatsAPI(APIView):
+    """
+    GET /api/admin/global-stats/
+    统计：学生数、试卷数、题目数、尝试数 + 各 Level 数据
+    """
+
+    def get(self, request):
+        # === 顶部统计 ===
+        student_count = Student.objects.count()
+        paper_count = TestPaper.objects.count()
+        question_count = Question.objects.count()
+        attempt_count = Attempt.objects.filter(submitted_at__isnull=False).count()
+
+        # === 分 Level 统计 ===
+        levels = ["Level 1", "Level 2", "Level 3", "Level 4"]
+        stats = {}
+
+        for level in levels:
+            # 题目数
+            q_count = Question.objects.filter(level=level).count()
+
+            # 所有已提交的 attempts
+            attempts = Attempt.objects.filter(
+                paper__level=level, submitted_at__isnull=False
+            )
+
+            # 有尝试的学生数（distinct）
+            student_in_level = attempts.values("student").distinct().count()
+
+            # 通过人数（score >= pass_percentage%）
+            passed_students = attempts.filter(
+                score__gte=F("total_marks") * F("paper__pass_percentage") / 100.0
+            ).values("student").distinct().count()
+
+            # 正确率
+            answers = AttemptAnswer.objects.filter(question__level=level)
+            total_answers = answers.count() or 1
+            correct_answers = answers.filter(is_correct=True).count()
+            accuracy = round(correct_answers / total_answers * 100, 2)
+
+            stats[level] = {
+                "students": student_in_level,
+                "passed_students": passed_students,
+                "questions": q_count,
+                "accuracy": accuracy,
+            }
+
+        return Response(
+            {
+                "student_count": student_count,
+                "paper_count": paper_count,
+                "question_count": question_count,
+                "attempt_count": attempt_count,
+                "levels": stats,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+class PaperResultAPI(APIView):
+    """
+    GET /api/admin/papers/<paper_id>/result/
+    返回这个试卷的学生成绩统计
+    """
+    def get(self, request, paper_id):
+        try:
+            paper = TestPaper.objects.get(id=paper_id)
+        except TestPaper.DoesNotExist:
+            return Response({"detail": "TestPaper not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        attempts = Attempt.objects.filter(paper_id=paper_id).select_related("student")
+
+        rows = []
+        for a in attempts:
+            rows.append({
+                "student_id": str(a.student.id),
+                "student_no": a.student.student_no,
+                "student_name": a.student.name,
+                "score": a.score,
+                "total_marks": a.total_marks,
+                "submitted_at": a.submitted_at,
+            })
+
+        return Response({
+            "paper_id": paper_id,
+            "paper_title": paper.title,
+            "attempts_count": attempts.count(),
+            "attempts": rows
+        })
 
 def _client_ip(request):
     xff = request.META.get('HTTP_X_FORWARDED_FOR')

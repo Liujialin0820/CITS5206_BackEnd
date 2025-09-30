@@ -20,4 +20,6 @@ class TestPaperSerializer(serializers.ModelSerializer):
             "questions_detail",  # 返回时带题目详情
             "created_at",
             "level_config",  # ✅ 新增字段
+            "duration_seconds",
+            "pass_percentage",  # 🆕 新增字段
         ]
