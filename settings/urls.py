@@ -8,7 +8,7 @@ urlpatterns = [
     path("user/", include("user.urls")),
     path("questions/", include("questions.urls")),
     path("test-papers/", include("testpaper.urls")),
-    path("api/", include("students.urls")),  # 接口地址 => /api/students/
+    path("exam/", include("exam.urls")),  
 
 ]
 

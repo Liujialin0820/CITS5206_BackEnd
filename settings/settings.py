@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "students",
     "django_filters",
     "testpaper",
+    "exam",
 ]
 
 REST_FRAMEWORK = {
