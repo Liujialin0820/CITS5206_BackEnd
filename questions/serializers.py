@@ -1,6 +1,7 @@
 import json
 from rest_framework import serializers
 from .models import Question, Choice, QuestionImage
+from exam.models import QuestionStat
 
 
 class ChoiceSerializer(serializers.ModelSerializer):
@@ -19,6 +20,7 @@ class QuestionSerializer(serializers.ModelSerializer):
     # 用于返回时嵌套
     choices = ChoiceSerializer(many=True, read_only=True)
     image = QuestionImageSerializer(read_only=True)
+    accuracy = serializers.SerializerMethodField()
 
     # 用于写入时接收 JSON 字符串
     choices_json = serializers.CharField(write_only=True, required=True)
@@ -33,10 +35,17 @@ class QuestionSerializer(serializers.ModelSerializer):
             "category",
             "marks",
             "question_text",
-            "choices",      # 返回时显示
-            "choices_json", # 写入时用
+            "choices",  # 返回时显示
+            "choices_json",  # 写入时用
             "image",
+            "accuracy",
         ]
+
+    def get_accuracy(self, obj):
+        stat = getattr(obj, "stat", None)
+        if stat and stat.attempts_count > 0:
+            return round(stat.correct_count / stat.attempts_count, 3)  # 保留3位小数
+        return None
 
     def create(self, validated_data):
         # 处理 choices_json
@@ -55,7 +64,9 @@ class QuestionSerializer(serializers.ModelSerializer):
 
         # 保存单图
         if request and "image" in request.FILES:
-            QuestionImage.objects.create(question=question, image=request.FILES["image"])
+            QuestionImage.objects.create(
+                question=question, image=request.FILES["image"]
+            )
 
         return question
 
@@ -93,7 +104,8 @@ class QuestionSerializer(serializers.ModelSerializer):
 class ChoicePreviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Choice
-        fields = ["id", "text"]   # ❌ 不要返回 is_correct
+        fields = ["id", "text"]  # ❌ 不要返回 is_correct
+
 
 class QuestionPreviewSerializer(serializers.ModelSerializer):
     choices = ChoicePreviewSerializer(many=True, read_only=True)

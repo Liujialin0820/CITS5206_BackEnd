@@ -130,26 +130,30 @@ class PaperStatsAPI(APIView):
 
         return Response(data, status=status.HTTP_200_OK)
 
+from questions.models import Question, Choice
 
 class QuestionChoiceStatsAPI(APIView):
-    """
-    GET /api/admin/questions/<question_id>/choice-stats
-    返回该题下每个选项的选择次数与“错误选择”次数（只关注 is_correct=False 的为重点）
-    """
+
     authentication_classes = []
     permission_classes = []
 
     def get(self, request, question_id: int):
-        # 该题总作答次数
+        try:
+            question = Question.objects.get(pk=question_id)
+        except Question.DoesNotExist:
+            return Response({"detail": "Question not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # 总作答次数
         attempts_cnt = AttemptAnswer.objects.filter(question_id=question_id).count() or 1
 
+        # 选项统计
         choices = (Choice.objects
-                   .filter(question_id=question_id)
-                   .annotate(
-                       selected=Coalesce(F('stat__selected_count'), Value(0)),
-                       wrong_selected=Coalesce(F('stat__wrong_selected_count'), Value(0)),
-                   )
-                   .order_by('id'))
+                    .filter(question_id=question_id)
+                    .annotate(
+                        selected=Coalesce(F('stat__selected_count'), Value(0)),
+                        wrong_selected=Coalesce(F('stat__wrong_selected_count'), Value(0)),
+                    )
+                    .order_by('id'))
 
         rows = []
         for c in choices:
@@ -162,11 +166,15 @@ class QuestionChoiceStatsAPI(APIView):
                 'wrong_rate_per_attempt': (float(c.wrong_selected) / float(attempts_cnt)),
             })
 
-        # 默认把错误选项放前面、按误选次数排序
         rows.sort(key=lambda x: (x['is_correct'], -x['wrong_selected']))
 
         return Response({
-            'question_id': int(question_id),
-            'attempts': attempts_cnt,
-            'choices': rows,
+            "id": question.id,
+            "text": question.question_text,
+            "type": question.type,
+            "marks": question.marks,
+            "category": question.category,
+            "level": question.level,
+            "attempts": attempts_cnt,
+            "choices": rows
         }, status=status.HTTP_200_OK)

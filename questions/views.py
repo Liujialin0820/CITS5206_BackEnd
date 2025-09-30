@@ -12,7 +12,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 
 class QuestionViewSet(viewsets.ModelViewSet):
-    queryset = Question.objects.all()
+    queryset = Question.objects.all().select_related("stat")
     serializer_class = QuestionSerializer
 
     # ✅ 支持 search / filter
