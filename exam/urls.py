@@ -10,5 +10,4 @@ urlpatterns = [
     path('questions/<int:question_id>/choice-stats/', QuestionChoiceStatsAPI.as_view()),
     path('admin/papers/<int:paper_id>/result/', PaperResultAPI.as_view()),
     path('admin/global-stats/', GlobalStatsAPI.as_view()),
-
 ]
